@@ -31,12 +31,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-try:
-    conn = psycopg2.connect(host="localhost", database="from_scratch", user="postgres", password="root", cursor_factory=RealDictCursor)
-    print("database connection was successfull")
-except Exception as error:
-    print("database connection failed")
-    print("Error while connecting to PostgreSQL", error)
+# try:
+#     conn = psycopg2.connect(host="localhost", database="from_scratch", user="postgres", password="root", cursor_factory=RealDictCursor)
+#     print("database connection was successfull")
+# except Exception as error:
+#     print("database connection failed")
+#     print("Error while connecting to PostgreSQL", error)
 
 app.include_router(user.router)
 app.include_router(auth.router)
