@@ -1,39 +1,43 @@
 from typing import Optional
+from decimal import Decimal
 
 from pydantic import BaseModel, EmailStr
 from datetime import date
+
+
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
     password: str
-    dob:date
+    dob: date
 
-class user_out(BaseModel):
+
+class UserOut(BaseModel):
     email: EmailStr
     username: str
-    dob:date
+    dob: date
     id: int
     profile_picture: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class UserLogin(BaseModel):
     username: str
     password: str
-class transaction(BaseModel):
+
+
+class TransactionBase(BaseModel):
     name: str
-    user_id: int
-    amnt: int
-    transaction_type: str
+    amnt: Decimal
     category: str
     description: str
     date: date
 
 
-class IncomeCreate(BaseModel):
-    name: str
-    amnt: int
+class IncomeCreate(TransactionBase):
     transaction_type: str = "income"
-    category: str
-    description: str
-    date: date
 
 
 class IncomeResponse(IncomeCreate):
@@ -44,13 +48,8 @@ class IncomeResponse(IncomeCreate):
         from_attributes = True
 
 
-class ExpenseCreate(BaseModel):
-    name: str
-    amnt: int
+class ExpenseCreate(TransactionBase):
     transaction_type: str = "expense"
-    category: str
-    description: str
-    date: date
 
 
 class ExpenseResponse(ExpenseCreate):
@@ -59,6 +58,15 @@ class ExpenseResponse(ExpenseCreate):
 
     class Config:
         from_attributes = True
+
+
+class TransactionUpdate(BaseModel):
+    name: Optional[str] = None
+    amnt: Optional[Decimal] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+    date: Optional[date] = None
+
 
 class Token(BaseModel):
     access_token: str

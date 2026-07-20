@@ -1,49 +1,36 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from .. import database, models, schemas, utils, oauth2
 
-router = APIRouter(
-    tags=["Authentication"]
-)
+router = APIRouter(tags=["Authentication"])
 
 
-@router.post("/login")
+@router.post("/login", response_model=schemas.Token)
 def login(
-    user_credentials: schemas.UserLogin,
-    db: Session = Depends(database.get_db)
+    # OAuth2PasswordRequestForm expects form fields "username" and "password".
+    # This matches the tokenUrl="login" contract that OAuth2PasswordBearer
+    # declares in oauth2.py, which is what lets Swagger UI's "Authorize"
+    # button actually work against this endpoint.
+    user_credentials: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(database.get_db),
 ):
-
-    # Find user by username
-    user = db.query(models.user).filter(
-        models.user.username == user_credentials.username
+    user = db.query(models.User).filter(
+        models.User.username == user_credentials.username
     ).first()
 
-    # Check if user exists
-    if user is None:
+    if user is None or not utils.verify(user_credentials.password, user.password):
+        # Same error for "no such user" and "wrong password" — don't leak
+        # which one it was.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password"
+            detail="Invalid username or password",
         )
 
-    # Verify password
-    if not utils.verify(
-        user_credentials.password,
-        user.password
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password"
-        )
+    access_token = oauth2.create_access_token(data={"user_id": user.id})
 
-    # Create JWT Access Token
-    access_token = oauth2.create_access_token(
-        data={"user_id": user.id}
-    )
-
-    # Return JWT Token
     return {
-    "access_token": access_token,
-    "token_type": "bearer",
-    "username": user.username
-}
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
